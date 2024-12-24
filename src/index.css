@@ -1,0 +1,114 @@
+:root {
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+
+  color-scheme: light dark;
+  color: rgba(255, 255, 255, 0.87);
+  background-color: #242424;
+
+  /* Base colors */
+  --primary-color: #646cff;
+  --primary-hover: #535bf2;
+  --secondary-color: #4a90e2;
+  --secondary-hover: #357abd;
+  --error-color: #ff4d4f;
+  --error-light: #fff1f0;
+  
+  /* Text colors */
+  --text-primary: rgba(255, 255, 255, 0.87);
+  --text-secondary: rgba(255, 255, 255, 0.6);
+  --text-hint: rgba(255, 255, 255, 0.4);
+  
+  /* Background colors */
+  --background-primary: #242424;
+  --background-secondary: #1a1a1a;
+  --background-hover: #2a2a2a;
+  
+  /* Border colors */
+  --border-color: #333;
+  --border-hover: #646cff;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+a {
+  font-weight: 500;
+  color: #646cff;
+  text-decoration: inherit;
+}
+a:hover {
+  color: #535bf2;
+}
+
+body {
+  margin: 0;
+  display: flex;
+  place-items: center;
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+h1 {
+  font-size: 3.2em;
+  line-height: 1.1;
+}
+
+button {
+  border-radius: 8px;
+  border: 1px solid transparent;
+  padding: 0.6em 1.2em;
+  font-size: 1em;
+  font-weight: 500;
+  font-family: inherit;
+  background-color: var(--background-secondary);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+button:hover {
+  border-color: var(--border-hover);
+  background-color: var(--background-hover);
+}
+
+button:focus,
+button:focus-visible {
+  outline: 4px auto -webkit-focus-ring-color;
+}
+
+button:disabled {
+  background-color: var(--background-secondary);
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    color: #213547;
+    background-color: #ffffff;
+    
+    /* Light mode colors */
+    --text-primary: #213547;
+    --text-secondary: #666666;
+    --text-hint: #999999;
+    
+    --background-primary: #ffffff;
+    --background-secondary: #f9f9f9;
+    --background-hover: #f0f0f0;
+    
+    --border-color: #e0e0e0;
+  }
+  
+  a:hover {
+    color: var(--primary-hover);
+  }
+  
+  button {
+    background-color: var(--background-secondary);
+    color: var(--text-primary);
+  }
+}

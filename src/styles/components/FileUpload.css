@@ -1,0 +1,205 @@
+.file-upload {
+  position: relative;
+  width: 100%;
+  max-width: 600px;
+  margin: 20px auto;
+  padding: 20px;
+  z-index: 1;
+}
+
+.upload-container {
+  position: relative;
+  border-radius: 8px;
+  background-color: var(--background-color, #ffffff);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  z-index: 2;
+}
+
+.drag-area {
+  padding: 40px;
+  border: 2px dashed #ccc;
+  border-radius: 6px;
+  text-align: center;
+  transition: all 0.3s ease;
+  background-color: var(--background-secondary);
+  cursor: pointer;
+}
+
+.drag-area:hover {
+  border-color: #4a90e2;
+  background-color: var(--background-hover);
+}
+
+.drag-area.drag-over {
+  border-color: #4a90e2;
+  background-color: #e3f2fd;
+  transform: scale(1.02);
+}
+
+.drag-area.error {
+  border-color: #ff4d4f;
+  background-color: #fff1f0;
+}
+
+.upload-icon {
+  font-size: 48px;
+  color: var(--text-color, #999);
+  margin-bottom: 16px;
+  transition: transform 0.2s ease-in-out, color 0.2s ease-in-out;
+  display: inline-block;
+}
+
+.upload-text {
+  color: #666;
+  margin-bottom: 8px;
+}
+
+.upload-hint {
+  color: #999;
+  font-size: 14px;
+}
+
+.progress-container {
+  margin-top: 20px;
+}
+
+.progress-bar {
+  height: 4px;
+  background-color: #f0f0f0;
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background-color: var(--primary-color, #646cff);
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transform-origin: left;
+  will-change: width;
+}
+
+.file-list {
+  margin-top: 20px;
+}
+
+.file-item {
+  display: flex;
+  align-items: center;
+  padding: 8px;
+  border: 1px solid #eee;
+  border-radius: 4px;
+  margin-bottom: 8px;
+}
+
+.file-item:hover {
+  background-color: var(--background-secondary);
+}
+
+.file-name {
+  flex: 1;
+  margin-right: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.file-size {
+  color: #999;
+  font-size: 12px;
+  margin-right: 12px;
+}
+
+.remove-button {
+  background: none;
+  border: none;
+  color: #ff4d4f;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.remove-button:hover {
+  background-color: #fff1f0;
+}
+
+.error-message {
+  color: #ff4d4f;
+  font-size: 14px;
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.upload-button {
+  background-color: var(--secondary-color);
+  color: var(--text-primary);
+  border: none;
+  padding: 10px 20px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.upload-button:hover {
+  background-color: var(--secondary-hover);
+}
+
+.upload-button:active {
+  background-color: var(--secondary-hover);
+}
+
+.upload-button:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
+@media screen and (max-width: 768px) {
+  .file-upload {
+    max-width: 100%;
+    margin: 10px;
+    padding: 15px;
+  }
+
+  .drag-area {
+    padding: 20px;
+  }
+
+  .upload-icon {
+    font-size: 36px;
+  }
+
+  .file-item {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .file-size {
+    margin: 4px 0;
+  }
+}
+
+.job-description-integration {
+  width: 100%;
+  max-width: 600px;
+  margin: 20px auto;
+  padding: 15px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background-color: var(--background-primary);
+}
+
+.job-description-integration:hover {
+  border-color: var(--primary-color, #646cff);
+  box-shadow: 0 0 0 2px rgba(100, 108, 255, 0.1);
+}
+
+.upload-icon:hover {
+  transform: scale(1.1);
+  color: var(--primary-color, #646cff);
+}
+
+.upload-icon:active {
+  transform: scale(0.95);
+}

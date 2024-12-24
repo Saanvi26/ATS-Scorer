@@ -1,0 +1,64 @@
+.job-description-container {
+  position: relative;
+  width: 100%;
+  max-width: 600px;
+  margin: 20px auto;
+  margin-bottom: 1rem;
+}
+
+.job-description-textarea {
+  width: 100%;
+  min-height: 200px;
+  padding: 1rem;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  font-size: 1rem;
+  line-height: 1.5;
+  resize: vertical;
+  background-color: var(--background-primary);
+  color: var(--text-primary);
+  transition: border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+}
+
+.job-description-textarea:hover {
+  border-color: var(--border-hover);
+}
+
+.job-description-textarea:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px rgba(100, 108, 255, 0.1);
+}
+
+.job-description-textarea.error {
+  border-color: var(--error-color);
+}
+
+.job-description-textarea.error:focus {
+  box-shadow: 0 0 0 2px var(--error-light);
+}
+
+.character-count {
+  position: absolute;
+  bottom: -1.5rem;
+  right: 0;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+.character-count.error {
+  color: var(--error-color);
+}
+
+.error-message {
+  color: var(--error-color);
+  font-size: 0.875rem;
+  margin-top: 0.5rem;
+  display: block;
+}
+
+@media screen and (max-width: 768px) {
+  .job-description-textarea {
+    min-height: 150px;
+  }
+}
