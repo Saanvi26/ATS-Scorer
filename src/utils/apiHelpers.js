@@ -1,5 +1,7 @@
+import { ApiKeyError } from './apiKeyUtils.js';
 import Bottleneck from 'bottleneck';
 import retry from 'retry';
+
 
 /**
  * API helper utilities for making HTTP requests with rate limiting and retry capabilities
@@ -46,18 +48,64 @@ export const createRetryOperation = (options = {}) => {
  * @throws {Error} Formatted error message
  */
 export const handleApiError = (error) => {
+  // Handle ApiKeyError instances first to preserve error types
+  if (error instanceof ApiKeyError) {
+    // Preserve the original error type and message
+    throw error;
+  }
+
+  // Handle API response errors
   if (error.response) {
     if (error.response.data?.error?.function_call) {
-      throw new Error(`Function Call Error: ${error.response.data.error.function_call.message}`);
+      throw new ApiKeyError(
+        `Function Call Error: ${error.response.data.error.function_call.message}`,
+        'FUNCTION_CALL_ERROR'
+      );
     }
-    throw new Error(`API Error: ${error.response.status} - ${error.response.data?.error?.message || 'Unknown error'}`);
-  } else if (error.request) {
-    throw new Error('Network Error: No response received from API');
-  } else if (error.name === 'FunctionCallError') {
-    throw new Error(`Function Call Error: ${error.message}`);
-  } else {
-    throw new Error(`Error: ${error.message}`);
+    
+    // Handle authentication errors
+    if (error.response.status === 401) {
+      throw new ApiKeyError(
+        'Invalid or expired API key. Please verify your API key in settings.',
+        'AUTHENTICATION_ERROR'
+      );
+    }
+    
+    // Handle rate limit errors
+    if (error.response.status === 429) {
+      throw new ApiKeyError(
+        'API rate limit exceeded. Please try again in a moment.',
+        'RATE_LIMIT_ERROR'
+      );
+    }
+    
+    throw new ApiKeyError(
+      `API Error (${error.response.status}): ${error.response.data?.error?.message || 'Unknown error'}`,
+      'API_ERROR'
+    );
   }
+  
+  // Handle network errors
+  if (error.request) {
+    throw new ApiKeyError(
+      'Network Error: Unable to reach the API server. Please check your connection.',
+      'NETWORK_ERROR'
+    );
+  }
+  
+  // Handle function call errors
+  if (error.name === 'FunctionCallError') {
+    throw new ApiKeyError(
+      `Function Call Error: ${error.message}`,
+      'FUNCTION_CALL_ERROR'
+    );
+  }
+  
+  // Handle all other errors
+  throw new ApiKeyError(
+    `Unexpected Error: ${error.message}`,
+    'GENERAL_ERROR'
+  );
 };
 
 /**
@@ -121,10 +169,6 @@ export const makeApiRequest = async (requestFn, options = {}) => {
         const formattedResponse = formatResponse(result, options.responseSchema);
         resolve(formattedResponse);
       } catch (error) {
-        if (operation.retry(error)) {
-          return;
-        }
-        handleApiError(error);
         reject(error);
       }
     });

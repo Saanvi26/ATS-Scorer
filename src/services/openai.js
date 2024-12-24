@@ -1,10 +1,31 @@
 import OpenAI from 'openai';
 import { makeApiRequest, formatResponse } from '../utils/apiHelpers.js';
 import { transformOpenAIResponse } from '../utils/transformers.js';
+import { getApiKey, ApiKeyError } from '../utils/apiKeyUtils.js';
 
-const openai = new OpenAI({
-  apiKey: "apiKey",
-  dangerouslyAllowBrowser: true
+let cachedClient = null;
+
+const getOpenAIClient = () => {
+  const apiKey = getApiKey();
+  if (!apiKey) {
+    throw new ApiKeyError('OpenAI API key not found. Please set your API key in settings.');
+  }
+
+  if (!cachedClient || cachedClient.apiKey !== apiKey) {
+    cachedClient = new OpenAI({
+      apiKey: apiKey,
+      dangerouslyAllowBrowser: true
+    });
+  }
+
+  return cachedClient;
+};
+
+// Listen for storage changes to reinitialize client when API key changes
+window.addEventListener('storage', (event) => {
+  if (event.key === 'openai_api_key') {
+    cachedClient = null; // Force client reinitialization
+  }
 });
 
 /**
@@ -66,23 +87,46 @@ const analyzeResumeAgainstJob = async (resumeText, jobDescription) => {
   };
 
   const requestFn = async () => {
-    const response = await openai.chat.completions.create({
-      model: "gpt-4",
-      messages: [
-        {
-          role: "system",
-          content: "You are an expert ATS system analyzing resume matches against job descriptions. You must always return some value for the tool call for each field."
-        },
-        {
-          role: "user",
-          content: `Analyze this resume against the job description.\n\nResume:\n${resumeText}\n\nJob Description:\n${jobDescription}`
-        }
-      ],
-      tools: [analyzeResumeTool],
-      temperature: 0.5,
-      max_tokens: 2000
-    });
-
+    const client = getOpenAIClient();
+    let response;
+    try {
+      response = await client.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: [
+          {
+            role: "system",
+            content:
+              "You are an expert ATS system analyzing resume matches against job descriptions. You must always return some value for the tool call for each field.",
+          },
+          {
+            role: "user",
+            content: `Analyze this resume against the job description.\n\nResume:\n${resumeText}\n\nJob Description:\n${jobDescription}`,
+          },
+        ],
+        tools: [analyzeResumeTool],
+        temperature: 0.5,
+        max_tokens: 2000,
+      });
+    } catch (error) {
+      // Handle authentication errors
+      if (error?.status === 401) {
+        throw new ApiKeyError('Your OpenAI API key appears to be invalid or has expired. Please verify your API key in settings and try again.', 'AUTHENTICATION_ERROR');
+      }
+      // Handle rate limit errors
+      if (error?.status === 429) {
+        throw new ApiKeyError('You have exceeded the API rate limit. Please wait a moment and try again.', 'RATE_LIMIT_ERROR');
+      }
+      // Handle network errors
+      if (error?.code === 'ECONNREFUSED' || error?.code === 'ENOTFOUND') {
+        throw new ApiKeyError('Unable to connect to OpenAI servers. Please check your internet connection.', 'NETWORK_ERROR');
+      }
+      // Preserve ApiKeyError if it's already that type
+      if (error instanceof ApiKeyError) {
+        throw error;
+      }
+      // Handle other API errors
+      throw new ApiKeyError('An error occurred while communicating with OpenAI. Please try again.', 'API_ERROR');
+    }
     if (!response.choices?.[0]?.message?.tool_calls?.[0]) {
       throw new Error('Invalid OpenAI response: Missing tool calls');
     }

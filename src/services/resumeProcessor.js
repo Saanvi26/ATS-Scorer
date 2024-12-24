@@ -1,4 +1,5 @@
 import { extractTextFromPDF } from './pdfService.js';
+import { ApiKeyError } from '../utils/apiKeyUtils.js';
 import { analyzeResumeAgainstJob } from './openai.js';
 import { createRateLimiter } from '../utils/apiHelpers.js';
 import { createRetryOperation } from '../utils/apiHelpers.js';
@@ -6,6 +7,13 @@ import { handleApiError } from '../utils/apiHelpers.js';
 import { isPDF } from '../utils/fileValidation.js';
 import { isValidFileSize } from '../utils/fileValidation.js';
 import { MAX_FILE_SIZE } from '../utils/fileValidation.js';
+const getApiKey = () => {
+  const apiKey = localStorage.getItem('openai_api_key');
+  if (!apiKey) {
+    throw new ApiKeyError('API key not found. Please provide your OpenAI API key.', 'MISSING_KEY');
+  }
+  return apiKey;
+};
 
 // Configure rate limiter for resume processing
 const limiter = createRateLimiter({
@@ -33,6 +41,8 @@ const processResumee = async (resumeFilePath, jobDescription, options = {}) => {
   return new Promise((resolve, reject) => {
     operation.attempt(async (currentAttempt) => {
       try {
+        // Get and validate API key
+        const apiKey = getApiKey();
         // Validate file
         const isValidPDF = await isPDF(resumeFilePath);
         if (!isValidPDF) {
@@ -51,18 +61,23 @@ const processResumee = async (resumeFilePath, jobDescription, options = {}) => {
             onProgress: options.onProgress
           });
 
-          console.log('Extracted text:', resumeText);
+          // console.log('Extracted text:', resumeText);
 
-          // Analyze resume against job description
-          const analysis = await analyzeResumeAgainstJob(resumeText, jobDescription);
-
-          console.log('Analysis:', analysis);
+          // Analyze resume against job description with API key
+          const analysis = await analyzeResumeAgainstJob(resumeText, jobDescription, apiKey);
+          
+          // console.log('Analysis:', analysis);
 
           return formatProcessingResponse(analysis);
         });
 
         resolve(result);
       } catch (error) {
+        if (error) {
+          // Preserve ApiKeyError type and message
+          reject(new ApiKeyError(error.message, error.type || 'GENERAL_ERROR'));
+          return;
+        }
         if (operation.retry(error)) {
           return;
         }

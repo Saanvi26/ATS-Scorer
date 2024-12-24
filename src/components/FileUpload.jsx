@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useRef } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { FiUploadCloud, FiFile, FiX } from 'react-icons/fi';
+import { FiUploadCloud, FiFile, FiX, FiAlertCircle } from 'react-icons/fi';
+import { ApiKeyError, ApiKeyValidationError, ApiKeyStorageError } from '../utils/apiKeyUtils';
 import JobDescription from './JobDescription';
 import { isPDF, isValidFileSize, MAX_FILE_SIZE, generateErrorMessage } from '../utils/fileValidation';
 import '../styles/components/FileUpload.css';
@@ -50,10 +51,14 @@ const FileUpload = ({ onFileUpload, onJobDescription, isLoading, error }) => {
       setSelectedFile(file);
       onFileUpload(file);
       setUploadProgress(0);
-    } catch (err) {
+    } catch (error) {
       setUploadProgress(0);
       setSelectedFile(null);
-      throw new Error(err.message);
+      if (error instanceof ApiKeyError) {
+        throw error;
+      } else {
+        throw new Error(error.message);
+      }
     } finally {
       cleanupFileReader();
     }
@@ -104,8 +109,11 @@ const FileUpload = ({ onFileUpload, onJobDescription, isLoading, error }) => {
         )}
 
         {error && (
-          <div className="error-message" role="alert">
-            <p>{error}</p>
+          <div className={`error-message ${error instanceof ApiKeyError ? 'api-key-error' : ''}`} role="alert">
+            <FiAlertCircle className="error-icon" />
+            <p>
+              {error instanceof ApiKeyError ? `API Key Error: ${error.message}` : error}
+            </p>
           </div>
         )}
       </div>

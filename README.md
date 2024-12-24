@@ -42,9 +42,31 @@ cd ats-score
 # Install dependencies
 npm install
 
-# Configure environment
-.env
-```
+# Create environment file
+cp .env.example .env
+
+# Configure environment variables
+nano .env  # or use your preferred editor
+
+## Environment Variables
+
+The application requires proper environment variable configuration to function correctly:
+
+1. Create a `.env` file by copying `.env.example`:
+   ```bash
+   cp .env.example .env
+   ```
+
+2. Configure the required environment variables in your `.env` file:
+   - All browser-exposed variables must be prefixed with `VITE_`
+   - This is a Vite.js requirement for security purposes
+
+3. Set up your OpenAI API key:
+   ```env
+   VITE_OPENAI_API_KEY=your_api_key_here
+   ```
+
+You can see an example of environment variable usage in `src/services/openai.js`, which uses the OpenAI API key for resume analysis.
 
 ## Usage Guide
 

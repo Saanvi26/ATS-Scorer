@@ -203,7 +203,7 @@ const ScoreDisplay = ({
 }) => {
 
 
-  console.log("All values:", score, feedback, suggestions, matchPercentage, keywordMatches, missingKeywords, detailedAnalysis, isLoading);
+  // console.log("All values:", score, feedback, suggestions, matchPercentage, keywordMatches, missingKeywords, detailedAnalysis, isLoading);
 
 
   if (isLoading) {

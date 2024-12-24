@@ -80,7 +80,6 @@
   color: #ef4444;
   margin-top: 0.5rem;
   font-size: 0.875rem;
-  opacity: 0;
   transform: translateY(-10px);
   transition: all 0.3s ease-in-out;
 }

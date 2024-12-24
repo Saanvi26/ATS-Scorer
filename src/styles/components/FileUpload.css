@@ -124,12 +124,34 @@
 }
 
 .error-message {
+  background-color: #fff2f0;
+  border: 1px solid #ffccc7;
+  border-radius: 4px;
   color: #ff4d4f;
   font-size: 14px;
-  margin-top: 8px;
+  margin-top: 12px;
+  padding: 12px;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
+  transition: all 0.3s ease;
+}
+
+.error-message.api-key-error {
+  background-color: #fff1f0;
+  border-color: #ffa39e;
+  color: #cf1322;
+}
+
+.error-message:hover {
+  background-color: #fff1f0;
+  border-color: #ff7875;
+}
+
+.error-icon {
+  flex-shrink: 0;
+  font-size: 16px;
+  color: currentColor;
 }
 
 .upload-button {
