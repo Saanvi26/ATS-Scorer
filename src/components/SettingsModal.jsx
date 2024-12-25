@@ -1,16 +1,32 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect,useRef } from 'react';
 import PropTypes from 'prop-types';
 import APIKeyInput from './APIKeyInput';
 import { useOpenAIContext } from '../context/OpenAIContext';
 import { getApiKey, validateApiKey, removeApiKey } from '../utils/apiKeyUtils';
 import '../styles/components/SettingsModal.css';
 const SettingsModal = ({ isOpen, onClose, defaultOpen = false }) => {
+  const modalRef = useRef(null);
+  const previousFocusRef = useRef(null);
   const { validateStoredKey, isLoading: contextLoading } = useOpenAIContext();
   const [currentKey, setCurrentKey] = useState(null);
   const [isKeyValid, setIsKeyValid] = useState(false);
   const [isAddingKey, setIsAddingKey] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      previousFocusRef.current = document.activeElement;
+      modalRef.current?.focus();
+      document.body.classList.add('modal-open');
+    } else {
+      document.body.classList.remove('modal-open');
+      previousFocusRef.current?.focus();
+    }
+    return () => {
+      document.body.classList.remove('modal-open');
+    };
+  }, [isOpen]);
 
   useEffect(() => {
     if (isOpen) {
@@ -47,21 +63,71 @@ const handleRemoveKey = async () => {
   }
 };
 
-  const handleKeySubmit = async () => {
-    await loadStoredKeys();
-    setIsAddingKey(false);
+  const handleKeySubmit = async (key) => {
+    setIsLoading(true);
+    setError('');
+    try {
+      const isValid = await validateApiKey(key);
+      if (!isValid) {
+        setError('Invalid API key. Please check and try again.');
+        return;
+      }
+      await validateStoredKey();
+      await loadStoredKeys();
+      setIsAddingKey(false);
+      if (isValid) {
+        onClose();
+      }
+    } catch (err) {
+      setError(err.message || 'Failed to validate API key');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleModalClose = (e) => {
-    if (!currentKey || !isKeyValid) return;
+  const handleModalClose = async (e) => {
     if (e.target === e.currentTarget) {
+      if (!currentKey) {
+        setError('Please add an API key before closing');
+        return;
+      }
+      if (!isKeyValid) {
+        setError('Please ensure your API key is valid before closing');
+        return;
+      }
+      await validateStoredKey();
       onClose();
     }
   };
 
-  const handleKeyDown = (e) => {
-    if (e.key === 'Escape' && currentKey && isKeyValid) {
-      onClose();
+  const handleKeyDown = async (e) => {
+    if (e.key === 'Escape') {
+      if (currentKey && isKeyValid) {
+        await validateStoredKey();
+        onClose();
+      } else if (currentKey && !isKeyValid) {
+        setError('Please ensure your API key is valid before closing');
+      } else {
+        setError('Please add an API key before closing');
+      }
+    } else if (e.key === 'Tab') {
+      const focusableElements = modalRef.current?.querySelectorAll(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      );
+      if (focusableElements) {
+        const firstElement = focusableElements[0];
+        const lastElement = focusableElements[focusableElements.length - 1];
+
+        if (e.shiftKey) {
+          if (document.activeElement === firstElement) {
+            lastElement.focus();
+            e.preventDefault();
+          }
+        } else if (document.activeElement === lastElement) {
+          firstElement.focus();
+          e.preventDefault();
+        }
+      }
     }
   };
 
@@ -76,10 +142,13 @@ const handleRemoveKey = async () => {
       aria-modal="true"
       aria-labelledby="settings-title"
     >
-      <div 
+      <div
+        ref={modalRef}
         className="settings-modal-container"
         onClick={e => e.stopPropagation()}
-        role="document"
+        role="dialog"
+        tabIndex="-1"
+        aria-modal="true"
       >
         <header className="settings-modal-header" aria-labelledby="settings-title settings-subtitle">
           <h2 id="settings-title" className="settings-modal-title">OpenAI API Key Settings</h2>

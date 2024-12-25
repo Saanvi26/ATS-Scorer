@@ -1,13 +1,15 @@
 .settings-modal-overlay {
   position: fixed;
   inset: 0;
-  background-color: rgba(0, 0, 0, 0.75);
+  background-color: var(--modal-overlay);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   display: flex;
   align-items: center;
   justify-content: center;
   opacity: 0;
   transition: opacity 0.3s ease-in-out;
-  z-index: 1000;
+  z-index: 1050;
 }
 
 .settings-modal-overlay.open {
@@ -15,7 +17,7 @@
 }
 
 .settings-modal-container {
-  background-color: #1a1a1a;
+  background-color: rgba(26, 26, 26, 0.95);
   border-radius: 0.75rem;
   border: 1px solid var(--border-color);
   padding: 2rem;
@@ -23,9 +25,12 @@
   max-width: 32rem;
   transform: translateY(-20px);
   transition: transform 0.3s ease-in-out;
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3),
+              0 8px 10px -6px rgba(0, 0, 0, 0.2);
   position: relative;
   overflow: hidden;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }
 
 .settings-modal-overlay.open .settings-modal-container {
@@ -196,6 +201,15 @@
   0% { transform: scale(1); }
   50% { transform: scale(1.1); }
   100% { transform: scale(1); }
+}
+
+.modal-open {
+  overflow: hidden;
+}
+
+.modal-open .app-content {
+  filter: blur(4px);
+  transition: filter 0.3s ease-in-out;
 }
 
 .gear-button {

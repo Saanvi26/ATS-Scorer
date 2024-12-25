@@ -14,7 +14,14 @@
   /* Modal theme colors */
   --modal-background: #1a1a1a;
   --modal-border: rgba(255, 255, 255, 0.1);
-  --modal-overlay: rgba(0, 0, 0, 0.75);
+  --modal-overlay: rgba(0, 0, 0, 0.5);
+  --modal-backdrop-blur: 8px;
+  --modal-container-blur: 12px;
+  --modal-container-bg: rgba(26, 26, 26, 0.95);
+  --modal-container-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3),
+                           0 8px 10px -6px rgba(0, 0, 0, 0.2);
+  --content-blur-amount: 4px;
+  --content-transition: filter 0.3s ease-in-out;
   --status-success: #22c55e;
   --status-error: var(--error-color);
 

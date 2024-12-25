@@ -21,6 +21,8 @@ function AppContent() {
   const { hasValidKey, isLoading: apiKeyLoading, apiKeyError, validateStoredKey } = useOpenAIContext();
   const [serviceInitialized, setServiceInitialized] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(!hasValidKey);
+  const [modalError, setModalError] = useState(null);
+  const [isClosingModal, setIsClosingModal] = useState(false);
   const [serviceError, setServiceError] = useState(null);
   const [file, setFile] = useState(null);
   const [fileUrl, setFileUrl] = useState(null);
@@ -43,10 +45,11 @@ function AppContent() {
   };
 
   useEffect(() => {
-    if (!hasValidKey) {
+    if (!hasValidKey || apiKeyError) {
       setIsSettingsOpen(true);
+      setModalError(apiKeyError);
     }
-  }, [hasValidKey]);
+  }, [hasValidKey, apiKeyError]);
 
   useEffect(() => {
     return () => {
@@ -137,7 +140,7 @@ const handleFileUpload = (uploadedFile) => {
 
   return (
     <>
-      <div className="app-container">
+      <div className={`app-container ${isSettingsOpen ? 'modal-open' : ''}`}>
       <button
         className={`settings-button ${!hasValidKey ? 'settings-button-highlight' : ''}`}
         onClick={() => {
@@ -157,7 +160,7 @@ const handleFileUpload = (uploadedFile) => {
           score and detailed feedback to improve your chances.
         </p>
       </header>
-      <main className="main-content">
+      <main className={`main-content ${isSettingsOpen ? 'content-dimmed' : ''}`} aria-hidden={isSettingsOpen}>
         {!hasValidKey ? (
           <div className="no-api-key-prompt">
             <p className="instruction-text">
@@ -221,7 +224,24 @@ const handleFileUpload = (uploadedFile) => {
       </footer>
       <SettingsModal
         isOpen={isSettingsOpen}
-        onClose={() => setIsSettingsOpen(false)}
+        onClose={async () => {
+          try {
+            setIsClosingModal(true);
+            setModalError(null);
+            await validateStoredKey();
+            if (!hasValidKey) {
+              setModalError('Please ensure you have a valid API key before closing');
+              return;
+            }
+            setIsSettingsOpen(false);
+          } catch (error) {
+            setModalError(error.message || 'Failed to close settings');
+          } finally {
+            setIsClosingModal(false);
+          }
+        }}
+        error={modalError}
+        isClosing={isClosingModal}
       />
       </div>
     </>
