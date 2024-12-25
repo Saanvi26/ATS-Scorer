@@ -89,10 +89,14 @@
   border: 1px solid #eee;
   border-radius: 4px;
   margin-bottom: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
 }
 
 .file-item:hover {
   background-color: var(--background-secondary);
+  border-color: var(--primary-color, #646cff);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .file-name {
@@ -116,11 +120,14 @@
   cursor: pointer;
   padding: 4px 8px;
   border-radius: 4px;
-  transition: background-color 0.2s;
+  transition: all 0.2s ease-in-out;
+  z-index: 1;
 }
 
 .remove-button:hover {
   background-color: #fff1f0;
+  transform: scale(1.05);
+  color: #ff1f1f;
 }
 
 .error-message {

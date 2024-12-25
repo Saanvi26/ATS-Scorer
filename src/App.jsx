@@ -1,9 +1,11 @@
 import { useState, useEffect, useContext } from "react";
 import FileUpload from "./components/FileUpload.jsx";
+import SettingsModal from "./components/SettingsModal.jsx";
 import ScoreDisplay from "./components/ScoreDisplay.jsx";
 import APIKeyInput from "./components/APIKeyInput.jsx";
 import { processResume } from "./services/resumeProcessor.js";
-import  OpenAIContext,{ OpenAIProvider}  from "./context/OpenAIContext";
+import { OpenAIProvider, useOpenAIContext } from "./context/OpenAIContext";
+import GearIcon from "./components/icons/GearIcon";
 import { ErrorBoundary } from "react-error-boundary";
 import { clearApiKey } from "./utils/apiKeyUtils";
 import "./App.css";
@@ -17,10 +19,12 @@ const ErrorFallback = ({ error, resetErrorBoundary }) => (
 );
 
 function AppContent() {
-  const { hasValidKey, isLoading: apiKeyLoading, apiKeyError, validateStoredKey } = useContext(OpenAIContext);
+  const { hasValidKey, isLoading: apiKeyLoading, apiKeyError, validateStoredKey } = useOpenAIContext();
   const [serviceInitialized, setServiceInitialized] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(!hasValidKey);
   const [serviceError, setServiceError] = useState(null);
   const [file, setFile] = useState(null);
+  const [fileUrl, setFileUrl] = useState(null);
   const [jobDescription, setJobDescription] = useState("");
   const [score, setScore] = useState(null);
   const [analysisResponse, setAnalysisResponse] = useState(null);
@@ -31,6 +35,28 @@ function AppContent() {
   const [feedback, setFeedback] = useState([]);
   const [suggestions, setSuggestions] = useState([]);
 
+  const clearAnalysisStates = () => {
+    setScore(null);
+    setAnalysisResponse(null);
+    setFeedback([]);
+    setSuggestions([]);
+    setSubmissionError(null);
+  };
+
+  useEffect(() => {
+    if (!hasValidKey) {
+      setIsSettingsOpen(true);
+    }
+  }, [hasValidKey]);
+
+  useEffect(() => {
+    return () => {
+      if (fileUrl) {
+        URL.revokeObjectURL(fileUrl);
+      }
+    };
+  }, [fileUrl]);
+
   useEffect(() => {
     setServiceInitialized(true);
   }, []);
@@ -39,26 +65,45 @@ function AppContent() {
     setIsSubmitEnabled(file !== null && jobDescription.trim() !== "");
   }, [file, jobDescription]);
 
-  const handleFileUpload = (uploadedFile) => {
-    try {
-      if (!serviceInitialized) {
-        throw new Error(
-          "Services not initialized. Please wait or refresh the page."
-        );
-      }
-      setUploadError(null);
-      setSubmissionError(null);
-      setFile(uploadedFile);
-    } catch (err) {
-      setUploadError(err.message);
-      setFile(null);
+const handleFileUpload = (uploadedFile) => {
+  try {
+    if (!serviceInitialized) {
+      throw new Error(
+        "Services not initialized. Please wait or refresh the page."
+      );
     }
-  };
+    setUploadError(null);
+    if (fileUrl) {
+      URL.revokeObjectURL(fileUrl);
+    }
+    if (!uploadedFile) {
+      clearAnalysisStates();
+      setFile(null);
+      setFileUrl(null);
+      return;
+    }
+    const newFileUrl = URL.createObjectURL(uploadedFile);
+    setFileUrl(newFileUrl);
+    setFile(uploadedFile);
+  } catch (err) {
+    setUploadError(err.message);
+    setFile(null);
+    if (fileUrl) {
+      URL.revokeObjectURL(fileUrl);
+      setFileUrl(null);
+    }
+    clearAnalysisStates();
+  }
+};
 
   const handleSubmit = async () => {
     try {
       setIsLoading(true);
       setSubmissionError(null);
+
+      if (!file) {
+        throw new Error("Please upload a resume file");
+      }
 
       if (!jobDescription.trim()) {
         throw new Error("Please provide a job description");
@@ -86,15 +131,24 @@ function AppContent() {
     }
   };
 
-  const { handleApiKey } = useContext(OpenAIContext);
-  // const  {clearApiKey}  = useContext(OpenAIContext);
-
+  const { addApiKey: handleApiKey } = useOpenAIContext();
   const handleJobDescription = (description) => {
     setJobDescription(description);
   };
 
   return (
-    <div className="app-container">
+    <>
+      <div className="app-container">
+      <button
+        className={`settings-button ${!hasValidKey ? 'settings-button-highlight' : ''}`}
+        onClick={() => {
+          setIsSettingsOpen(true);
+          validateStoredKey();
+        }}
+        aria-label="Open settings"
+      >
+        <GearIcon size={50} color={!hasValidKey ? '#ff6b6b' : 'currentColor'} />
+      </button>
       <header className="app-header" role="banner">
         <h1 className="header-title" aria-label="main heading">
           ATS Resume Scorer
@@ -105,25 +159,17 @@ function AppContent() {
         </p>
       </header>
       <main className="main-content">
-        {apiKeyLoading ? (
-          <div className="loading-message" role="status">
-            Validating API key...
-          </div>
-        ) : apiKeyError ? (
-          <div className="error-container">
-            <div className="error-message" role="alert">
-              {apiKeyError.includes("Invalid API key")
-                ? "Your API key appears to be invalid. Please check and try again."
-                : "There was an issue with your API key. Please try again."}
-            </div>
-            <APIKeyInput onKeySubmit={handleApiKey} />
-          </div>
-        ) : !hasValidKey ? (
-          <div className="api-key-container">
+        {!hasValidKey ? (
+          <div className="no-api-key-prompt">
             <p className="instruction-text">
-              Please enter your OpenAI API key to continue:
+              Please configure your OpenAI API key in settings to use this application.
             </p>
-            <APIKeyInput onKeySubmit={handleApiKey} />
+            <button
+              onClick={() => setIsSettingsOpen(true)}
+              className="open-settings-button"
+            >
+              Open Settings
+            </button>
           </div>
         ) : (
           <>
@@ -136,13 +182,12 @@ function AppContent() {
               isLoading={isLoading}
               error={uploadError}
               disabled={!serviceInitialized || !!serviceError}
+              fileUrl={fileUrl}
             />
             {submissionError && (
-              <>
               <div className="error-message mt-4" style={{ color: "red" }}>
                 {submissionError}
               </div>
-              </>
             )}
             {isSubmitEnabled && (
               <button
@@ -153,7 +198,7 @@ function AppContent() {
                 {isLoading ? "Processing..." : "Analyze Resume"}
               </button>
             )}
-            {score && (
+            {file && score && analysisResponse && (
               <ScoreDisplay
                 score={analysisResponse.score}
                 feedback={analysisResponse.feedback}
@@ -168,15 +213,6 @@ function AppContent() {
           </>
         )}
       </main>
-      {hasValidKey && (
-        <button
-          onClick={clearApiKey}
-          className="mt-4 px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
-          aria-label="Reset API Key"
-        >
-          Reset API Key
-        </button>
-      )}
       <footer
         className="app-footer"
         role="contentinfo"
@@ -184,7 +220,12 @@ function AppContent() {
       >
         Made with ♥ by AI
       </footer>
-    </div>
+      <SettingsModal
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+      />
+      </div>
+    </>
   );
 }
 

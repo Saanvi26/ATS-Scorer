@@ -1,0 +1,91 @@
+:root {
+  --gear-icon-size: 24px;
+  --gear-icon-color: #646cff;
+  --gear-icon-hover-color: #535bf2;
+  --gear-icon-active-color: #4347d9;
+  --gear-icon-disabled-color: #93959e;
+  --gear-icon-transition: all 0.3s ease-in-out;
+  --gear-icon-rotation-speed: 2s;
+}
+
+.gear-icon {
+  width: var(--gear-icon-size);
+  height: var(--gear-icon-size);
+  color: var(--gear-icon-color);
+  cursor: pointer;
+  transition: var(--gear-icon-transition);
+  will-change: transform;
+}
+
+.gear-icon:hover {
+  color: var(--gear-icon-hover-color);
+  filter: drop-shadow(0 0 0.5em currentColor);
+  transform: scale(1.1);
+}
+
+.gear-icon:active {
+  color: var(--gear-icon-active-color);
+  transform: scale(0.95);
+}
+
+.gear-icon.disabled {
+  color: var(--gear-icon-disabled-color);
+  cursor: not-allowed;
+  pointer-events: none;
+  opacity: 0.7;
+}
+
+.gear-icon.spinning {
+  animation: gear-spin var(--gear-icon-rotation-speed) linear infinite;
+}
+
+@keyframes gear-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.gear-icon.pulse {
+  animation: gear-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes gear-pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+  100% { transform: scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gear-icon {
+    transition: none;
+  }
+  
+  .gear-icon:hover {
+    transform: none;
+    filter: none;
+  }
+  
+  .gear-icon.spinning,
+  .gear-icon.pulse {
+    animation: none;
+  }
+}
+
+@media (max-width: 768px) {
+  :root {
+    --gear-icon-size: 20px;
+  }
+}
+
+@media (max-width: 480px) {
+  :root {
+    --gear-icon-size: 18px;
+  }
+  
+  .gear-icon:hover {
+    transform: none;
+  }
+}

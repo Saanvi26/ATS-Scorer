@@ -1,0 +1,41 @@
+@import './components/GearIcon.css';
+
+:root {
+  /* Base colors */
+  --primary-color: #646cff;
+  --primary-hover: #535bf2;
+  --primary-active: #4347d9;
+  --disabled-color: #93959e;
+  --text-color: #ffffff;
+  --text-secondary: #e5e7eb;
+  --border-color: rgba(255, 255, 255, 0.1);
+  --error-color: #ef4444;
+
+  /* Modal theme colors */
+  --modal-background: #1a1a1a;
+  --modal-border: rgba(255, 255, 255, 0.1);
+  --modal-overlay: rgba(0, 0, 0, 0.75);
+  --status-success: #22c55e;
+  --status-error: var(--error-color);
+
+  /* Animation timings */
+  --transition-default: all 0.3s ease-in-out;
+  
+  /* Spacing */
+  --spacing-xs: 0.5rem;
+  --spacing-sm: 0.75rem;
+  --spacing-md: 1rem;
+  --spacing-lg: 1.5rem;
+  --spacing-xl: 2rem;
+  
+  /* Font sizes */
+  --font-size-xs: 0.75rem;
+  --font-size-sm: 0.875rem;
+  --font-size-md: 1rem;
+  --font-size-lg: 1.125rem;
+  --font-size-xl: 1.5rem;
+  --font-size-2xl: 1.875rem;
+  --font-size-3xl: 2.25rem;
+}
+
+/* Import other component styles below */

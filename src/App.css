@@ -181,3 +181,24 @@
     font-size: 0.75rem;
   }
 }
+
+/* Settings Button Styles */
+.settings-button {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.5rem;
+  transition: transform 0.2s ease;
+}
+
+.settings-button:hover {
+  transform: rotate(45deg);
+}
+
+.settings-button:focus {
+  outline: 2px solid #4a90e2;
+  border-radius: 50%;
+}

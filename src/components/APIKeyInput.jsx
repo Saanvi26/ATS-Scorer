@@ -1,16 +1,16 @@
 import { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
-import { validateApiKey, storeApiKey, getApiKey, hasApiKey, ApiKeyValidationError, ApiKeyStorageError } from '../utils/apiKeyUtils';
+import { storeApiKey, getApiKey, hasApiKey, ApiKeyValidationError, ApiKeyStorageError } from '../utils/apiKeyUtils';
 import OpenAIClientFactory from '../services/OpenAIClientFactory';
 import { useOpenAIContext } from '../context/OpenAIContext';
 import '../styles/components/APIKeyInput.css';
-const APIKeyInput = ({ onKeySubmit }) => {
+const APIKeyInput = ({ onKeySubmit, onCancel }) => {
   const { validateStoredKey } = useOpenAIContext();
+  const [isUpdateMode, setIsUpdateMode] = useState(false);
   const [apiKey, setApiKey] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
-  const [isUpdateMode, setIsUpdateMode] = useState(false);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -20,34 +20,6 @@ const APIKeyInput = ({ onKeySubmit }) => {
     return () => clearTimeout(timer);
   }, [success, error]);
 
-  useEffect(() => {
-    const checkExistingKey = async () => {
-      if (hasApiKey()) {
-        const storedKey = getApiKey();
-        if (storedKey && validateStoredKey()) {
-          setIsUpdateMode(true);
-        }
-      }
-    };
-
-    checkExistingKey();
-
-    const handleApiKeyEvent = (event) => {
-      if (event.detail.type === 'stored' && event.detail.success) {
-        setIsUpdateMode(true);
-      }
-    };
-
-    window.addEventListener('apiKey', handleApiKeyEvent);
-
-    return () => {
-      window.removeEventListener('apiKey', handleApiKeyEvent);
-      const instance = OpenAIClientFactory.getInstance();
-      if (instance.isInitialized()) {
-        instance.reinitializeClient();
-      }
-    };
-  }, [validateStoredKey]);
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -61,28 +33,28 @@ const APIKeyInput = ({ onKeySubmit }) => {
     }
 
     try {
-      await storeApiKey(apiKey);
+      await storeApiKey(apiKey.trim());
       OpenAIClientFactory.getInstance().reinitializeClient();
       
       if (onKeySubmit) {
-        await onKeySubmit(apiKey);
+        await onKeySubmit(apiKey.trim());
       }
       
       setSuccess(true);
       setApiKey('');
+      setIsUpdateMode(true);
     } catch (err) {
       if (err instanceof ApiKeyValidationError) {
-        setError('Invalid API key: ' + err.message);
+        setError('The API key appears to be invalid. Please check your settings and try again.');
       } else if (err instanceof ApiKeyStorageError) {
-        setError('Failed to store API key: ' + err.message);
+        setError('Unable to save the API key in settings. Please try again.');
       } else {
-        setError('An unexpected error occurred');
+        setError('Unable to update settings. Please try again later.');
+        console.error('Settings Update Error:', err);
       }
     } finally {
       setIsLoading(false);
-    }
-  };
-
+    }};
   return (
     <div className="api-key-input-container p-4 rounded shadow">
       <form onSubmit={handleSubmit}>
@@ -124,7 +96,7 @@ const APIKeyInput = ({ onKeySubmit }) => {
             role="alert"
             aria-live="polite"
           >
-            API key successfully stored!
+            API key successfully saved in settings!
           </div>
         )}
 
@@ -142,9 +114,9 @@ const APIKeyInput = ({ onKeySubmit }) => {
               Validating...
             </>
           ) : isUpdateMode ? (
-            'Update API Key'
+            'Save Changes'
           ) : (
-            'Submit API Key'
+            'Save API Key'
           )}
         </button>
       </form>
@@ -153,7 +125,8 @@ const APIKeyInput = ({ onKeySubmit }) => {
 };
 
 APIKeyInput.propTypes = {
-  onKeySubmit: PropTypes.func
+  onKeySubmit: PropTypes.func.isRequired,
+  onCancel: PropTypes.func.isRequired
 };
 
 export default APIKeyInput;

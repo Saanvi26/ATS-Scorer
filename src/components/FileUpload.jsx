@@ -5,11 +5,12 @@ import { ApiKeyError, ApiKeyValidationError, ApiKeyStorageError } from '../utils
 import JobDescription from './JobDescription';
 import { isPDF, isValidFileSize, MAX_FILE_SIZE, generateErrorMessage } from '../utils/fileValidation';
 import '../styles/components/FileUpload.css';
-const FileUpload = ({ onFileUpload, onJobDescription, isLoading, error }) => {
+const FileUpload = ({ onFileUpload, onJobDescription, isLoading, error, fileUrl, className }) => {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [selectedFile, setSelectedFile] = useState(null);
   const [jobDescriptionText, setJobDescriptionText] = useState('');
   const [jobDescriptionError, setJobDescriptionError] = useState('');
+  const [isRemoving, setIsRemoving] = useState(false);
 
   const fileReaderRef = useRef(null);
 
@@ -73,12 +74,18 @@ const FileUpload = ({ onFileUpload, onJobDescription, isLoading, error }) => {
   });
 
   return (
-    <div className="file-upload">
+    <div className={`file-upload ${className || ''}`}>
       <div
         {...getRootProps()}
-        className={`upload-container drag-area ${isDragActive ? 'drag-over' : ''} ${error ? 'error' : ''}`}
+        className={`upload-container drag-area
+          ${isDragActive ? 'drag-over' : ''}
+          ${error ? 'error' : ''}
+          ${isRemoving ? 'removing' : ''}
+          ${selectedFile ? 'has-file' : ''}`
+        }
         role="button"
-        aria-label="Upload file area"
+        aria-label={selectedFile ? 'Replace resume file' : 'Upload resume file'}
+        aria-describedby="file-upload-description"
       >
         <input {...getInputProps()} />
         <FiUploadCloud className="upload-icon" />
@@ -87,8 +94,8 @@ const FileUpload = ({ onFileUpload, onJobDescription, isLoading, error }) => {
           <p className="upload-text">Drop your resume here</p>
         ) : (
           <div>
-            <p className="upload-text">Drag and drop your resume here, or click to select</p>
-            <p className="upload-hint">Only PDF files are accepted</p>
+            <p className="upload-text" id="file-upload-description">Drag and drop your resume here, or click to select</p>
+            <p className="upload-hint" aria-label="File type restriction">Only PDF files are accepted (max 10MB)</p>
           </div>
         )}
 
@@ -119,22 +126,38 @@ const FileUpload = ({ onFileUpload, onJobDescription, isLoading, error }) => {
       </div>
       {selectedFile && (
         <div className="file-list">
-          <div className="file-item">
+          <div 
+            className="file-item clickable"
+            onClick={() => fileUrl && window.open(fileUrl, '_blank')}
+            role="button"
+            aria-label={`Preview ${selectedFile.name}`}
+            style={{ cursor: 'pointer' }}
+          >
             <FiFile className="file-icon" />
             <span className="file-name">
               {selectedFile.name}
             </span>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              setSelectedFile(null);
-            }}
-            className="remove-button"
-            aria-label="Remove file"
-          >
-            <FiX />
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsRemoving(true);
+                setTimeout(() => {
+                  setSelectedFile(null);
+                  setIsRemoving(false);
+                  onFileUpload(null);
+                  const fileInput = document.querySelector('input[type="file"]');
+                  if (fileInput) {
+                    fileInput.value = '';
+                  }
+                }, 300);
+              }}
+              className="remove-button"
+              aria-label={`Remove ${selectedFile.name}`}
+              title="Remove file"
+            >
+              <FiX aria-hidden="true" />
             </button>
-            </div>
+          </div>
         </div>
       )}
       <div className="mt-8">

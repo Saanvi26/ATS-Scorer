@@ -7,6 +7,8 @@ const useOpenAI = () => {
   const [error, setError] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [keySource, setKeySource] = useState(null);
+  const [storedKeys, setStoredKeys] = useState([]);
+  const [keyValidationStatus, setKeyValidationStatus] = useState({});
   const clientFactory = OpenAIClientFactory.getInstance();
 
   const initializeClient = async () => {
@@ -14,8 +16,17 @@ const useOpenAI = () => {
       setIsLoading(true);
       setError(null);
       
-      const storedKey = getApiKey();
-      if (storedKey) {
+      const keys = getAllStoredApiKeys();
+      setStoredKeys(keys);
+      
+      const validationResults = await validateMultipleApiKeys(keys);
+      const validationStatus = {};
+      validationResults.forEach(({ key, isValid }) => {
+        validationStatus[key] = isValid;
+      });
+      setKeyValidationStatus(validationStatus);
+      
+      if (keys.length > 0) {
         setKeySource('localStorage');
       } else {
         setKeySource('env');
@@ -25,7 +36,7 @@ const useOpenAI = () => {
       setClient(newClient);
     } catch (err) {
       setError(err instanceof ApiKeyError 
-        ? { ...err, source: keySource } 
+        ? { ...err, source: keySource, keys: storedKeys } 
         : new Error('Failed to initialize OpenAI client'));
       setClient(null);
       setKeySource(null);
@@ -89,14 +100,35 @@ const useOpenAI = () => {
     return clientFactory.getCurrentApiKey();
   };
 
+  const addApiKey = async (key) => {
+    try {
+      await storeApiKey(key);
+      await initializeClient();
+    } catch (err) {
+      setError(new ApiKeyError('Failed to add API key', 'ADD_KEY_ERROR'));
+    }
+  };
+
+  const removeApiKey = async (key) => {
+    try {
+      await removeStoredApiKey(key);
+      await initializeClient();
+    } catch (err) {
+      setError(new ApiKeyError('Failed to remove API key', 'REMOVE_KEY_ERROR'));
+    }
+  };
   return {
     client,
     error,
     isLoading,
     keySource,
+    storedKeys,
+    keyValidationStatus,
     isClientReady,
     reinitializeClient,
-    getCurrentApiKey
+    getCurrentApiKey,
+    addApiKey,
+    removeApiKey
   };
 };
 

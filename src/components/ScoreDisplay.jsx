@@ -141,7 +141,7 @@ const KeywordItem = styled(SuggestionItem)`
   
   &:before {
     content: "${props => props.missing ? '✗' : '✓'}";
-    color: ${props => props.missing ? 'var(--text-error)' : '#38a169'};
+    color: ${props => props.missing ? '#ff0000' : '#38a169'};
   }
 `;
 

@@ -52,13 +52,6 @@ export const validateApiKey = (key) => {
   return true;
 };
 
-export const checkEnvApiKey = () => {
-  return handleApiKeyOperation(() => {
-    const envKey = process.env[ENV_KEY];
-    if (!envKey) return null;
-    return envKey;
-  });
-};
 
 export const getKeySource = () => {
   return localStorage.getItem(KEY_SOURCE) || 'env';
@@ -76,7 +69,6 @@ export const storeApiKey = (apiKey) => {
     if (!apiKey) {
       throw new ApiKeyValidationError('API key is required', 'MISSING_KEY');
     }
-
     localStorage.setItem(STORAGE_KEY, apiKey);
     setKeySource('localStorage');
     dispatchApiKeyEvent('stored', { success: true, source: 'localStorage' });
@@ -89,18 +81,8 @@ export const getApiKey = () => {
     const source = getKeySource();
     if (source === 'localStorage') {
       const storedKey = localStorage.getItem(STORAGE_KEY);
-      if (storedKey) {
-        // Migration: Check if the key is encrypted (contains ':' character)
-        if (storedKey.includes(':')) {
-          // For previously encrypted keys, just store them as-is without decryption
-          const newKey = storedKey.split(':')[1];
-          localStorage.setItem(STORAGE_KEY, newKey);
-          return newKey;
-        }
-        return storedKey;
-      }
+      if (storedKey) return storedKey;
     }
-    return checkEnvApiKey();
   });
 };
 
@@ -108,7 +90,6 @@ export const clearApiKey = () => {
   return handleApiKeyOperation(() => {
     localStorage.removeItem(STORAGE_KEY);
     localStorage.removeItem(KEY_SOURCE);
-    // reload the page to clear the API key from memory
     window.location.reload();
     dispatchApiKeyEvent('cleared', { success: true });
     return true;
@@ -117,7 +98,7 @@ export const clearApiKey = () => {
 
 export const hasApiKey = () => {
   return handleApiKeyOperation(() => {
-    return !!localStorage.getItem(STORAGE_KEY);
+    return localStorage.getItem(STORAGE_KEY) !== null;
   });
 };
 
@@ -130,5 +111,52 @@ export const initializeWithStoredKey = async () => {
 
     dispatchApiKeyEvent('initialized', { success: true });
     return apiKey;
+  });
+};
+
+export const storeMultipleApiKeys = (apiKeys) => {
+  return handleApiKeyOperation(() => {
+    if (!Array.isArray(apiKeys)) {
+      throw new ApiKeyValidationError('API keys must be provided as an array', 'INVALID_FORMAT');
+    }
+    if (apiKeys.length === 0) {
+      throw new ApiKeyValidationError('At least one API key is required', 'MISSING_KEY');
+    }
+    
+    localStorage.setItem(STORAGE_KEYS, JSON.stringify(apiKeys));
+    setKeySource('localStorage');
+    dispatchApiKeyEvent('stored', { success: true, source: 'localStorage' });
+    return true;
+  });
+};
+
+export const getAllStoredApiKeys = () => {
+  return handleApiKeyOperation(() => {
+    const storedKeys = localStorage.getItem(STORAGE_KEY);
+    return storedKeys ? JSON.parse(storedKeys) : [];
+  });
+};
+
+export const removeApiKey = () => {
+  return handleApiKeyOperation(() => {
+    localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(KEY_SOURCE);
+    dispatchApiKeyEvent('removed', { success: true });
+    return true;
+  });
+};
+
+export const validateMultipleApiKeys = async (apiKeys) => {
+  return handleApiKeyOperation(() => {
+    if (!Array.isArray(apiKeys)) {
+      throw new ApiKeyValidationError('API keys must be provided as an array', 'INVALID_FORMAT');
+    }
+    
+    const validationResults = apiKeys.map(key => ({
+      key,
+      isValid: validateApiKey(key)
+    }));
+    
+    return validationResults;
   });
 };
