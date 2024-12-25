@@ -150,7 +150,7 @@ const handleFileUpload = (uploadedFile) => {
       </button>
       <header className="app-header" role="banner">
         <h1 className="header-title" aria-label="main heading">
-          ATS Resume Scorer by AI
+          ATS Resume Scorer
         </h1>
         <p className="header-description" aria-label="application description">
           Upload your resume and job description to get an ATS compatibility
