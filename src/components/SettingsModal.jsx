@@ -1,13 +1,14 @@
 import { useState, useEffect,useRef } from 'react';
 import PropTypes from 'prop-types';
 import APIKeyInput from './APIKeyInput';
+import ModelSelector from './ModelSelector';
 import { useOpenAIContext } from '../context/OpenAIContext';
 import { getApiKey, validateApiKey, removeApiKey } from '../utils/apiKeyUtils';
 import '../styles/components/SettingsModal.css';
 const SettingsModal = ({ isOpen, onClose, defaultOpen = false }) => {
   const modalRef = useRef(null);
   const previousFocusRef = useRef(null);
-  const { validateStoredKey, isLoading: contextLoading } = useOpenAIContext();
+  const { validateStoredKey, isLoading: contextLoading, selectedModel, setSelectedModel, modelError } = useOpenAIContext();
   const [currentKey, setCurrentKey] = useState(null);
   const [isKeyValid, setIsKeyValid] = useState(false);
   const [isAddingKey, setIsAddingKey] = useState(false);
@@ -39,7 +40,7 @@ const loadStoredKeys = async () => {
   try {
     const key = getApiKey();
     if (key) {
-      const isValid = await validateApiKey(key);
+      const isValid = validateApiKey(key);
       setCurrentKey(key);
       setIsKeyValid(isValid);
     } else {
@@ -95,6 +96,10 @@ const handleRemoveKey = async () => {
         setError('Please ensure your API key is valid before closing');
         return;
       }
+      if (!selectedModel) {
+        setError('Please select a model before closing');
+        return;
+      }
       await validateStoredKey();
       onClose();
     }
@@ -135,7 +140,7 @@ const handleRemoveKey = async () => {
 
   return (
     <div
-      className={`settings-modal-overlay ${isOpen ? 'open' : ''}`}
+      className={`settings-modal-overlay ${isOpen ? "open" : ""}`}
       onClick={handleModalClose}
       onKeyDown={handleKeyDown}
       role="dialog"
@@ -145,14 +150,22 @@ const handleRemoveKey = async () => {
       <div
         ref={modalRef}
         className="settings-modal-container"
-        onClick={e => e.stopPropagation()}
+        onClick={(e) => e.stopPropagation()}
         role="dialog"
         tabIndex="-1"
         aria-modal="true"
       >
-        <header className="settings-modal-header" aria-labelledby="settings-title settings-subtitle">
-          <h2 id="settings-title" className="settings-modal-title">OpenAI API Key Settings</h2>
-          <p id="settings-subtitle" className="settings-modal-subtitle">Enter your OpenAI API key to use the ATS Resume Scorer. Your key is stored locally and never sent to our servers.</p>
+        <header
+          className="settings-modal-header"
+          aria-labelledby="settings-title settings-subtitle"
+        >
+          <h2 id="settings-title" className="settings-modal-title">
+            OpenAI API Key Settings
+          </h2>
+          <p id="settings-subtitle" className="settings-modal-subtitle">
+            Enter your OpenAI API key to use the ATS Resume Scorer. Your key is
+            stored locally and never sent to our servers.
+          </p>
           {currentKey && isKeyValid && (
             <button
               onClick={onClose}
@@ -165,27 +178,35 @@ const handleRemoveKey = async () => {
         </header>
 
         {error && (
-          <div 
-            className="error-message" 
-            role="alert"
-            aria-live="polite"
-          >
+          <div className="error-message" role="alert" aria-live="polite">
             {error}
           </div>
         )}
 
         {isLoading || contextLoading ? (
           <div className="text-center py-4" role="status" aria-live="polite">
-            <span className="settings-spinner" aria-hidden="true">⟳</span>
+            <span className="settings-spinner" aria-hidden="true">
+              ⟳
+            </span>
             Loading...
           </div>
         ) : (
-          <div className="space-y-4" role="region" aria-label="API key management">
+          <div
+            className="space-y-4"
+            role="region"
+            aria-label="API key management"
+          >
             {currentKey && (
               <div className="api-key-item">
                 <div className="flex items-center space-x-2">
-                  <span className={`api-key-status ${isKeyValid ? 'valid' : 'invalid'}`}></span>
-                  <span className="api-key-value">•••• {currentKey.slice(-4)}</span>
+                  <span
+                    className={`api-key-status ${
+                      isKeyValid ? "valid" : "invalid"
+                    }`}
+                  ></span>
+                  <span className="api-key-value">
+                    •••• {currentKey.slice(-4)}
+                  </span>
                 </div>
                 <button
                   onClick={handleRemoveKey}
@@ -229,6 +250,35 @@ const handleRemoveKey = async () => {
                 Add New API Key
               </button>
             )}
+
+            <div
+              className="model-selector-section"
+              role="region"
+              aria-label="Model Selection"
+            >
+              <div className="model-selector-content">
+                <div className="model-selector-header">
+                  <h3 className="model-selector-title">Model Selection</h3>
+                  <p className="model-selector-description">
+                    Choose the OpenAI model to use for resume analysis.
+                  </p>
+                </div>
+
+                <div className="model-selector-container">
+                  <div className="model-selector-wrapper">
+                    <ModelSelector
+                      onModelSelect={setSelectedModel}
+                      onCancel={onClose}
+                    />
+                    {modelError && (
+                      <div className="error-message model-error" role="alert">
+                        {modelError}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         )}
       </div>

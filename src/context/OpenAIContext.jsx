@@ -2,6 +2,7 @@ import React, { useState, createContext, useContext,useEffect } from "react";
 import PropTypes from 'prop-types';
 import useOpenAI from '../hooks/useOpenAI';
 import { validateApiKey, storeApiKey, removeApiKey, getApiKey } from '../utils/apiKeyUtils';
+import { validateModel, storeModel, getModel, clearModel } from '../utils/modelUtils';
 
 /** 
  * @typedef {Object} OpenAIContextValue
@@ -12,6 +13,10 @@ import { validateApiKey, storeApiKey, removeApiKey, getApiKey } from '../utils/a
  * @property {boolean} hasValidKey - Whether there is a valid API key
  * @property {string|null} apiKeyError - Specific error message for API key issues
  * @property {boolean} isFirstTimeUser - Whether the user hasn't set up an API key yet
+ * @property {string} selectedModel - The currently selected OpenAI model
+ * @property {string|null} modelError - Specific error message for model issues
+ * @property {Function} setSelectedModel - Function to update the selected model
+ * @property {boolean} isSettingsModalOpen - Whether the settings modal is open
  * @property {boolean} isSettingsModalOpen - Whether the settings modal is open
  * @property {Function} openSettingsModal - Function to open the settings modal
  * @property {Function} closeSettingsModal - Function to close the settings modal
@@ -30,6 +35,8 @@ export const OpenAIProvider = ({ children }) => {
   const [hasValidKey, setHasValidKey] = useState(false);
   const [isFirstTimeUser, setIsFirstTimeUser] = useState(true);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
+  const [selectedModel, setSelectedModel] = useState(getModel());
+  const [modelError, setModelError] = useState(null);
   const validateStoredKey = async () => {
     try {
       const key = getApiKey();
@@ -54,6 +61,22 @@ export const OpenAIProvider = ({ children }) => {
     }
   };
 
+  const validateStoredModel = async () => {
+    try {
+      const model = getModel();
+      const isValid = validateModel(model);
+      if (isValid) {
+        setSelectedModel(model);
+        setModelError(null);
+      }
+      return isValid;
+    } catch (error) {
+      console.error('Error validating stored model:', error);
+      setModelError(error.message);
+      return false;
+    }
+  };
+
   useEffect(() => {
     const checkFirstTimeUser = async () => {
       const key = getApiKey();
@@ -63,6 +86,10 @@ export const OpenAIProvider = ({ children }) => {
       }
     };
     checkFirstTimeUser();
+  }, []);
+
+  useEffect(() => {
+    validateStoredModel();
   }, []);
   const value = {
     client: openAI.client,
@@ -78,6 +105,22 @@ export const OpenAIProvider = ({ children }) => {
     reinitializeClient: openAI.reinitializeClient,
     getCurrentApiKey: openAI.getCurrentApiKey,
     validateStoredKey,
+    selectedModel,
+    modelError,
+    setSelectedModel: async (model) => {
+      try {
+        if (validateModel(model)) {
+          await storeModel(model);
+          setSelectedModel(model);
+          setModelError(null);
+          await openAI.reinitializeClient();
+        }
+      } catch (error) {
+        console.error('Error setting model:', error);
+        setModelError(error.message);
+        throw error;
+      }
+    },
     addApiKey: async (key) => {
       try {
         await storeApiKey(key);

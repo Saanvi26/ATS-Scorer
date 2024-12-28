@@ -32,8 +32,8 @@
  * @property {string} detailedAnalysis - Detailed analysis text
  */
 const validateOpenAIResponse = (response) => {
-  if (!response || typeof response !== 'object') {
-    throw new Error('Invalid response format: Response must be an object');
+  if (!response || typeof response !== 'object' || Array.isArray(response)) {
+    throw new Error(`Invalid response format: Expected object, received ${response === null ? 'null' : Array.isArray(response) ? 'array' : typeof response}`);
   }
 
   const requiredFields = [
@@ -47,42 +47,69 @@ const validateOpenAIResponse = (response) => {
 
   for (const field of requiredFields) {
     if (!(field in response)) {
-      throw new Error(`Missing required field: ${field}`);
+      throw new Error(`Missing required field: ${field}. Received fields: ${Object.keys(response).join(', ')}`);
     }
   }
 
-  if (typeof response.matchPercentage !== 'number' || 
-      response.matchPercentage < 0 || 
-      response.matchPercentage > 100) {
-    throw new Error('Invalid matchPercentage: Must be a number between 0 and 100');
+  // Validate numeric fields
+  const numericFields = [
+    { name: 'matchPercentage', value: response.matchPercentage },
+    { name: 'score', value: response.score }
+  ];
+
+  for (const field of numericFields) {
+    if (typeof field.value !== 'number' || isNaN(field.value)) {
+      throw new Error(`Invalid ${field.name}: Expected number, received ${typeof field.value}. Value: ${field.value}`);
+    }
+    if (field.value < 0 || field.value > 100) {
+      throw new Error(`Invalid ${field.name}: Must be between 0 and 100. Received: ${field.value}`);
+    }
   }
 
-  if (typeof response.score !== 'number' || 
-      response.score < 0 || 
-      response.score > 100) {
-    throw new Error('Invalid score: Must be a number between 0 and 100');
+  // Validate array fields
+  const arrayFields = [
+    { name: 'keywordMatches', value: response.keywordMatches },
+    { name: 'missingKeywords', value: response.missingKeywords },
+    { name: 'suggestions', value: response.suggestions }
+  ];
+
+  for (const field of arrayFields) {
+    if (!Array.isArray(field.value)) {
+      throw new Error(`Invalid ${field.name}: Expected array, received ${typeof field.value}`);
+    }
+    if (field.value.some(item => typeof item !== 'string' || !item.trim())) {
+      throw new Error(`Invalid ${field.name}: All items must be non-empty strings`);
+    }
   }
 
-  if (!Array.isArray(response.keywordMatches) || 
-      !Array.isArray(response.missingKeywords) || 
-      !Array.isArray(response.suggestions)) {
-    throw new Error('Invalid array fields: keywordMatches, missingKeywords, and suggestions must be arrays');
-  }
-
-  if (typeof response.detailedAnalysis !== 'string') {
-    throw new Error('Invalid detailedAnalysis: Must be a string');
+  // Validate detailed analysis
+  if (typeof response.detailedAnalysis !== 'string' || !response.detailedAnalysis.trim()) {
+    throw new Error(`Invalid detailedAnalysis: Expected non-empty string, received ${typeof response.detailedAnalysis}`);
   }
 };
 
 const parseDetailedAnalysis = (analysis) => {
-  // Split analysis into paragraphs and convert each into a feedback item
-  return analysis
+  if (typeof analysis !== 'string') {
+    throw new Error(`Invalid analysis format: Expected string, received ${typeof analysis}`);
+  }
+
+  if (!analysis.trim()) {
+    throw new Error('Empty analysis text provided');
+  }
+
+  const paragraphs = analysis
     .split('\n\n')
-    .filter(paragraph => paragraph.trim())
-    .map(paragraph => ({
-      title: 'Analysis',
-      description: paragraph.trim()
-    }));
+    .map(p => p.trim())
+    .filter(Boolean);
+
+  if (paragraphs.length === 0) {
+    throw new Error('No valid paragraphs found in analysis text');
+  }
+
+  return paragraphs.map((paragraph, index) => ({
+    title: `Analysis Part ${index + 1}`,
+    description: paragraph
+  }));
 };
 
 /**

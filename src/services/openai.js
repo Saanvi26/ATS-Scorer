@@ -2,13 +2,22 @@ import OpenAI from 'openai';
 import { makeApiRequest, formatResponse } from '../utils/apiHelpers.js';
 import { transformOpenAIResponse } from '../utils/transformers.js';
 import { getApiKey, ApiKeyError } from '../utils/apiKeyUtils.js';
+import { validateModel, getModel, ModelError } from '../utils/modelUtils.js';
 
 let cachedClient = null;
 
 const getOpenAIClient = () => {
   const apiKey = getApiKey();
+  const model = getModel();
+
   if (!apiKey) {
     throw new ApiKeyError('OpenAI API key not found. Please set your API key in settings.');
+  }
+
+  try {
+    validateModel(model);
+  } catch (error) {
+    throw new ModelError('Invalid model configuration. Please check your model settings.');
   }
 
   if (!cachedClient || cachedClient.apiKey !== apiKey) {
@@ -18,7 +27,7 @@ const getOpenAIClient = () => {
     });
   }
 
-  return cachedClient;
+  return { client: cachedClient, model };
 };
 
 // Listen for storage changes to reinitialize client when API key changes
@@ -87,11 +96,11 @@ const analyzeResumeAgainstJob = async (resumeText, jobDescription) => {
   };
 
   const requestFn = async () => {
-    const client = getOpenAIClient();
     let response;
     try {
+      const { client, model } = getOpenAIClient();
       response = await client.chat.completions.create({
-        model: "gpt-4o-mini",
+        model: model,
         messages: [
           {
             role: "system",
@@ -108,34 +117,41 @@ const analyzeResumeAgainstJob = async (resumeText, jobDescription) => {
         max_tokens: 2000,
       });
     } catch (error) {
-      // Handle authentication errors
+      // Handle specific error types first
+      if (error instanceof ModelError || error instanceof ApiKeyError) {
+        throw error;
+      }
+      
+      // Handle specific API error status codes
       if (error?.status === 401) {
         throw new ApiKeyError('Your OpenAI API key appears to be invalid or has expired. Please verify your API key in settings and try again.', 'AUTHENTICATION_ERROR');
-      }
-      // Handle rate limit errors
+      } 
       if (error?.status === 429) {
         throw new ApiKeyError('You have exceeded the API rate limit. Please wait a moment and try again.', 'RATE_LIMIT_ERROR');
       }
-      // Handle network errors
+      
+      // Handle network connectivity errors
       if (error?.code === 'ECONNREFUSED' || error?.code === 'ENOTFOUND') {
         throw new ApiKeyError('Unable to connect to OpenAI servers. Please check your internet connection.', 'NETWORK_ERROR');
       }
-      // Preserve ApiKeyError if it's already that type
-      if (error instanceof ApiKeyError) {
-        throw error;
-      }
-      // Handle other API errors
-      throw new ApiKeyError('An error occurred while communicating with OpenAI. Please try again.', 'API_ERROR');
+      
+      // Handle other API errors with more specific message
+      throw new ApiKeyError(`OpenAI API error: ${error.message || 'Unknown error occurred'}`, 'API_ERROR');
     }
-    if (!response.choices?.[0]?.message?.tool_calls?.[0]) {
-      throw new Error('Invalid OpenAI response: Missing tool calls');
+    // Log raw response for debugging
+    console.log('Raw OpenAI Response:', JSON.stringify(response, null, 2));
+
+    // Validate response structure
+    if (!response?.choices?.[0]?.message?.tool_calls?.[0]) {
+      throw new Error('Invalid OpenAI response structure: Missing required tool calls');
     }
 
     const toolCall = response.choices[0].message.tool_calls[0];
     
-    console.log('OpenAI Response:', {
+    // Log processed response data
+    console.log('Processed OpenAI Response:', {
       model: response.model,
-      toolCall: toolCall,
+      toolCall: JSON.stringify(toolCall, null, 2),
       usage: response.usage
     });
     
@@ -179,6 +195,7 @@ const analyzeResumeAgainstJob = async (resumeText, jobDescription) => {
       maxTimeout: 5000
     }
   });
+
 };
 
 export { analyzeResumeAgainstJob };

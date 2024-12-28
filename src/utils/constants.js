@@ -44,3 +44,20 @@ export const SCORE_RANGES = {
   GOOD: 70,
   EXCELLENT: 90
 };
+
+// OpenAI Models
+export const OPENAI_MODELS = {
+  "gpt-4o-mini": "GPT-4o mini",
+  "gpt-4-0613": "gpt-4-0613",
+  "gpt-3.5-turbo-0125": "GPT-3.5 Turbo",
+  "gpt-4o-2024-08-06": "gpt-4o-2024-08-06",
+};
+
+// Local Storage Keys
+export const LOCAL_STORAGE_KEYS = {
+  API_KEY: 'openai_api_key',
+  MODEL: 'openai_model'
+};
+
+// Default OpenAI Model
+export const DEFAULT_MODEL = 'gpt-3.5-turbo';

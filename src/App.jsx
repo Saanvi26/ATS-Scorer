@@ -7,8 +7,9 @@ import { processResume } from "./services/resumeProcessor.js";
 import { OpenAIProvider, useOpenAIContext } from "./context/OpenAIContext";
 import GearIcon from "./components/icons/GearIcon";
 import { ErrorBoundary } from "react-error-boundary";
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import "./App.css";
-
 const ErrorFallback = ({ error, resetErrorBoundary }) => (
   <div className="error-container">
     <h2>Something went wrong:</h2>
@@ -18,7 +19,9 @@ const ErrorFallback = ({ error, resetErrorBoundary }) => (
 );
 
 function AppContent() {
-  const { hasValidKey, isLoading: apiKeyLoading, apiKeyError, validateStoredKey } = useOpenAIContext();
+  const { hasValidKey, isLoading: apiKeyLoading, apiKeyError, validateStoredKey, addApiKey } = useOpenAIContext();
+  const [validationCache, setValidationCache] = useState(null);
+  const [validationLoading, setValidationLoading] = useState(false);
   const [serviceInitialized, setServiceInitialized] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(!hasValidKey);
   const [modalError, setModalError] = useState(null);
@@ -228,20 +231,37 @@ const handleFileUpload = (uploadedFile) => {
           try {
             setIsClosingModal(true);
             setModalError(null);
-            await validateStoredKey();
-            if (!hasValidKey) {
-              setModalError('Please ensure you have a valid API key before closing');
+            
+            // Use cached validation result if available
+            let isValid = validationCache;
+            if (isValid === null) {
+              setValidationLoading(true);
+              isValid = await validateStoredKey();
+              setValidationCache(isValid);
+            }
+            
+            if (!isValid) {
+              setModalError('Invalid API key. Please ensure you have entered a valid OpenAI API key.');
               return;
             }
+            
+            // Clear all error states on successful close
+            setModalError(null);
+            setValidationCache(null);
             setIsSettingsOpen(false);
+            
           } catch (error) {
-            setModalError(error.message || 'Failed to close settings');
+            const errorMessage = error.response?.data?.error || error.message;
+            setModalError(`Validation failed: ${errorMessage}`);
           } finally {
             setIsClosingModal(false);
+            setValidationLoading(false);
           }
         }}
         error={modalError}
-        isClosing={isClosingModal}
+        isClosing={isClosingModal || validationLoading}
+        aria-busy={validationLoading}
+        aria-live="polite"
       />
       </div>
     </>
@@ -250,11 +270,20 @@ const handleFileUpload = (uploadedFile) => {
 
 function App() {
   return (
-    <ErrorBoundary FallbackComponent={ErrorFallback}>
-      <OpenAIProvider>
-        <AppContent />
-      </OpenAIProvider>
-    </ErrorBoundary>
+    <>
+      <ToastContainer
+        position="top-right"
+        autoClose={5000}
+        hideProgressBar={false}
+        closeOnClick={true}
+        pauseOnHover={true}
+      />
+      <ErrorBoundary FallbackComponent={ErrorFallback}>
+        <OpenAIProvider>
+          <AppContent />
+        </OpenAIProvider>
+      </ErrorBoundary>
+    </>
   );
 }
 

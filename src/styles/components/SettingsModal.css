@@ -1,3 +1,13 @@
+:root {
+  --modal-spacing-sm: 0.5rem;
+  --modal-spacing-md: 1rem;
+  --modal-spacing-lg: 1.5rem;
+  --modal-spacing-xl: 2rem;
+  --modal-transition: 0.2s ease-in-out;
+  --modal-border-radius: 0.75rem;
+  --modal-section-bg: rgba(255, 255, 255, 0.05);
+}
+
 .settings-modal-overlay {
   position: fixed;
   inset: 0;
@@ -139,13 +149,41 @@
   line-height: 1.5;
 }
 
-.api-key-input-container {
-  background-color: rgba(255, 255, 255, 0.05);
-  padding: 1.5rem;
-  border-radius: 0.5rem;
-  border: 1px solid var(--border-color);
-  margin-top: 1rem;
+.model-selector-section {
+  margin-top: var(--modal-spacing-xl);
+  padding-top: var(--modal-spacing-lg);
+  border-top: 1px solid var(--border-color);
+  transition: all var(--modal-transition);
 }
+
+.model-selector-header {
+  margin-bottom: 1rem;
+}
+
+.model-selector-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-color);
+  margin-bottom: 0.5rem;
+}
+
+.model-selector-description {
+  color: var(--text-secondary);
+    font-size: 0.875rem;
+    margin-top: 0.5rem;
+    line-height: 1.5;
+}
+
+.model-selector-container {
+  background-color: var(--modal-section-bg);
+  padding: var(--modal-spacing-lg);
+  border-radius: var(--modal-border-radius);
+  border: 1px dotted var(--border-color);
+  margin-top: var(--modal-spacing-md);
+  transition: all var(--modal-transition);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
 
 .add-key-button {
   width: 100%;
@@ -250,5 +288,20 @@
   
   .api-key-item {
     padding: 0.5rem;
+  }
+
+  .model-selector-section {
+    margin-top: var(--modal-spacing-lg);
+    padding-top: var(--modal-spacing-md);
+  }
+
+  .model-selector-container {
+    padding: var(--modal-spacing-md);
+    margin-top: var(--modal-spacing-sm);
+    border-radius: calc(var(--modal-border-radius) * 0.75);
+  }
+
+  .model-selector-title {
+    font-size: 1rem;
   }
 }

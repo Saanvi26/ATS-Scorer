@@ -1,4 +1,12 @@
 import { ApiKeyError } from './apiKeyUtils.js';
+
+export class ValidationError extends Error {
+  constructor(message, type = 'VALIDATION_ERROR') {
+    super(message);
+    this.name = 'ValidationError';
+    this.type = type;
+  }
+}
 import Bottleneck from 'bottleneck';
 import retry from 'retry';
 
@@ -120,7 +128,11 @@ export const formatResponse = (response, schema) => {
     let parsedResponse = response;
     
     if (typeof response === 'string') {
-      parsedResponse = JSON.parse(response);
+      try {
+        parsedResponse = JSON.parse(response);
+      } catch (error) {
+        throw new ValidationError(`Invalid JSON response: ${error.message}`);
+      }
     }
     
     // Handle function call responses
@@ -129,20 +141,28 @@ export const formatResponse = (response, schema) => {
       try {
         parsedResponse = JSON.parse(functionCall.arguments);
       } catch (error) {
-        throw new Error('Failed to parse function call arguments');
+        throw new ValidationError('Failed to parse function call arguments', 'FUNCTION_CALL_ERROR');
       }
     }
 
     if (schema) {
-      return Object.keys(schema).reduce((acc, key) => {
-        acc[key] = parsedResponse[key];
-        return acc;
-      }, {});
+      const formattedResponse = {};
+      for (const [key, config] of Object.entries(schema)) {
+        const value = parsedResponse[key];
+        if (config.required && value === undefined) {
+          throw new ValidationError(`Missing required field: ${key}`);
+        }
+        formattedResponse[key] = value ?? config.defaultValue;
+      }
+      return formattedResponse;
     }
 
     return parsedResponse;
   } catch (error) {
-    throw new Error(`Failed to parse response: ${error.message}`);
+    if (error instanceof ValidationError) {
+      throw error;
+    }
+    throw new ValidationError(`Failed to parse response: ${error.message}`);
   }
 };
 
@@ -166,10 +186,22 @@ export const makeApiRequest = async (requestFn, options = {}) => {
           return await requestFn();
         });
 
-        const formattedResponse = formatResponse(result, options.responseSchema);
-        resolve(formattedResponse);
+        try {
+          const formattedResponse = formatResponse(result, options.responseSchema);
+          resolve(formattedResponse);
+        } catch (transformError) {
+          if (transformError instanceof ValidationError) {
+            reject(transformError);
+          } else {
+            reject(new ValidationError(`Response transformation failed: ${transformError.message}`));
+          }
+        }
       } catch (error) {
-        reject(error);
+        if (error instanceof ApiKeyError || error instanceof ValidationError) {
+          reject(error);
+        } else {
+          handleApiError(error);
+        }
       }
     });
   });
@@ -188,6 +220,33 @@ export const validateParams = (params, requiredParams) => {
     throw new Error(`Missing required parameters: ${missingParams.join(', ')}`);
   }
   return true;
+};
+
+/**
+ * Validates response data against a schema
+ * @param {Object} data - Data to validate
+ * @param {Object} schema - Validation schema
+ * @throws {ValidationError} If validation fails
+ */
+export const validateResponseData = (data, schema) => {
+  if (!data || typeof data !== 'object') {
+    throw new ValidationError('Invalid response data: Expected an object');
+  }
+
+  for (const [key, config] of Object.entries(schema)) {
+    const value = data[key];
+    
+    if (config.required && value === undefined) {
+      throw new ValidationError(`Missing required field: ${key}`);
+    }
+    
+    if (value !== undefined && config.type) {
+      const valueType = Array.isArray(value) ? 'array' : typeof value;
+      if (valueType !== config.type) {
+        throw new ValidationError(`Invalid type for ${key}: Expected ${config.type}, got ${valueType}`);
+      }
+    }
+  }
 };
 
 /**
