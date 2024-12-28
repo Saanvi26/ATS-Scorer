@@ -47,9 +47,10 @@ export const SCORE_RANGES = {
 
 // OpenAI Models
 export const OPENAI_MODELS = {
-  "gpt-4o-mini": "GPT-4o mini",
+  // "Select a model":"Select a model",
+  "gpt-4o-mini" : "GPT-4o mini",
   "gpt-4-0613": "gpt-4-0613",
-  "gpt-3.5-turbo-0125": "GPT-3.5 Turbo",
+  "gpt-3.5-turbo-0125" :"GPT-3.5 Turbo",
   "gpt-4o-2024-08-06": "gpt-4o-2024-08-06",
 };
 
@@ -60,4 +61,4 @@ export const LOCAL_STORAGE_KEYS = {
 };
 
 // Default OpenAI Model
-export const DEFAULT_MODEL = 'gpt-3.5-turbo';
+export const DEFAULT_MODEL = "gpt-4o-mini";

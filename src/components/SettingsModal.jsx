@@ -76,11 +76,15 @@ const handleRemoveKey = async () => {
       await validateStoredKey();
       await loadStoredKeys();
       setIsAddingKey(false);
-      if (isValid) {
+      if (isValid && selectedModel) {
         onClose();
+      } else if (!selectedModel) {
+        setError('Please select a model before closing');
       }
     } catch (err) {
-      setError(err.message || 'Failed to validate API key');
+      const errorMessage = err.message || 'Failed to validate API key';
+      setError(errorMessage);
+      console.error('API key validation error:', errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -88,20 +92,29 @@ const handleRemoveKey = async () => {
 
   const handleModalClose = async (e) => {
     if (e.target === e.currentTarget) {
-      if (!currentKey) {
-        setError('Please add an API key before closing');
-        return;
+      setIsLoading(true);
+      try {
+        if (!currentKey) {
+          setError('Please add an API key before closing');
+          return;
+        }
+        const isValid = await validateApiKey(currentKey);
+        if (!isValid) {
+          setError('Please ensure your API key is valid before closing');
+          return;
+        }
+        if (!selectedModel) {
+          setError('Please select a model before closing');
+          return;
+        }
+        await validateStoredKey();
+        onClose();
+      } catch (err) {
+        setError('Failed to validate settings. Please try again.');
+        console.error('Settings validation error:', err);
+      } finally {
+        setIsLoading(false);
       }
-      if (!isKeyValid) {
-        setError('Please ensure your API key is valid before closing');
-        return;
-      }
-      if (!selectedModel) {
-        setError('Please select a model before closing');
-        return;
-      }
-      await validateStoredKey();
-      onClose();
     }
   };
 
@@ -184,11 +197,17 @@ const handleRemoveKey = async () => {
         )}
 
         {isLoading || contextLoading ? (
-          <div className="text-center py-4" role="status" aria-live="polite">
+          <div 
+            className="text-center py-4" 
+            role="status" 
+            aria-live="polite"
+            aria-busy="true"
+          >
             <span className="settings-spinner" aria-hidden="true">
               ⟳
             </span>
-            Loading...
+            <span className="sr-only">Validating API key and settings...</span>
+            <span aria-hidden="true">Loading...</span>
           </div>
         ) : (
           <div

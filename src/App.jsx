@@ -23,7 +23,7 @@ function AppContent() {
   const [validationCache, setValidationCache] = useState(null);
   const [validationLoading, setValidationLoading] = useState(false);
   const [serviceInitialized, setServiceInitialized] = useState(false);
-  const [isSettingsOpen, setIsSettingsOpen] = useState(!hasValidKey);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [modalError, setModalError] = useState(null);
   const [isClosingModal, setIsClosingModal] = useState(false);
   const [serviceError, setServiceError] = useState(null);
@@ -47,12 +47,30 @@ function AppContent() {
     setSubmissionError(null);
   };
 
+  // Handle initial API key validation and modal visibility
   useEffect(() => {
-    if (!hasValidKey || apiKeyError) {
+    const checkApiKeyAndUpdateModal = async () => {
+      try {
+        const hasKey = await validateStoredKey();
+        if (!hasKey) {
+          setIsSettingsOpen(true);
+          setModalError('Please configure your OpenAI API key');
+        }
+      } catch (error) {
+        setIsSettingsOpen(true);
+        setModalError(error.message);
+      }
+    };
+    checkApiKeyAndUpdateModal();
+  }, []);
+
+  // Monitor API key state changes
+  useEffect(() => {
+    if (apiKeyError) {
       setIsSettingsOpen(true);
       setModalError(apiKeyError);
     }
-  }, [hasValidKey, apiKeyError]);
+  }, [apiKeyError]);
 
   useEffect(() => {
     return () => {
@@ -231,28 +249,26 @@ const handleFileUpload = (uploadedFile) => {
           try {
             setIsClosingModal(true);
             setModalError(null);
-            
-            // Use cached validation result if available
-            let isValid = validationCache;
-            if (isValid === null) {
-              setValidationLoading(true);
-              isValid = await validateStoredKey();
-              setValidationCache(isValid);
-            }
-            
+            setValidationLoading(true);
+
+            // Always perform fresh validation when closing
+            const isValid = await validateStoredKey();
+
             if (!isValid) {
               setModalError('Invalid API key. Please ensure you have entered a valid OpenAI API key.');
               return;
             }
-            
-            // Clear all error states on successful close
-            setModalError(null);
-            setValidationCache(null);
-            setIsSettingsOpen(false);
-            
+
+            // Only close modal if we have a valid key
+            if (hasValidKey && !apiKeyError) {
+              setIsSettingsOpen(false);
+            } else {
+              setModalError('Please configure a valid API key before closing');
+              return;
+            }
           } catch (error) {
             const errorMessage = error.response?.data?.error || error.message;
-            setModalError(`Validation failed: ${errorMessage}`);
+            setModalError(`API key validation failed: ${errorMessage}`);
           } finally {
             setIsClosingModal(false);
             setValidationLoading(false);

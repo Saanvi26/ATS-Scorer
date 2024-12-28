@@ -36,6 +36,24 @@
   background-color: rgba(37, 99, 235, 0.05);
 }
 
+.model-selector__select option {
+  padding: var(--spacing-sm) var(--spacing-md);
+  background-color: rgba(26, 26, 26, 0.95);
+  color: var(--text-color);
+}
+
+.model-selector__select option:first-child {
+  background-color: rgba(37, 99, 235, 0.1);
+  font-weight: 500;
+  border-bottom: 1px solid var(--border-color);
+  margin-bottom: var(--spacing-sm);
+  padding-bottom: var(--spacing-md);
+}
+
+.model-selector__select option:hover {
+  background-color: rgba(37, 99, 235, 0.15);
+}
+
 .model-selector__select:disabled {
   opacity: 0.6;
   cursor: not-allowed;

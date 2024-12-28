@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import useOpenAI from '../hooks/useOpenAI';
 import { validateApiKey, storeApiKey, removeApiKey, getApiKey } from '../utils/apiKeyUtils';
 import { validateModel, storeModel, getModel, clearModel } from '../utils/modelUtils';
+import { DEFAULT_MODEL, OPENAI_MODELS, LOCAL_STORAGE_KEYS } from '../utils/constants';
 
 /** 
  * @typedef {Object} OpenAIContextValue
@@ -27,9 +28,8 @@ import { validateModel, storeModel, getModel, clearModel } from '../utils/modelU
  * @property {Function} removeApiKey - Function to remove the API key
  */
 /** @type {React.Context<OpenAIContextValue>} */
-const OpenAIContext =createContext(null);
 
-
+  const OpenAIContext = createContext(null);
 export const OpenAIProvider = ({ children }) => {
   const openAI = useOpenAI();
   const [hasValidKey, setHasValidKey] = useState(false);
@@ -61,6 +61,10 @@ export const OpenAIProvider = ({ children }) => {
     }
   };
 
+  /**
+   * Validates the stored model and handles edge cases
+   * If the stored model is invalid, reverts to the default model
+   */
   const validateStoredModel = async () => {
     try {
       const model = getModel();
@@ -68,8 +72,16 @@ export const OpenAIProvider = ({ children }) => {
       if (isValid) {
         setSelectedModel(model);
         setModelError(null);
+        return true;
       }
-      return isValid;
+      // If invalid, revert to default model
+      const defaultModel = DEFAULT_MODEL;
+      if (validateModel(defaultModel)) {
+        setSelectedModel(defaultModel);
+        setModelError('Invalid stored model, reverted to default');
+        return true;
+      }
+      throw new Error('Both stored and default models are invalid');
     } catch (error) {
       console.error('Error validating stored model:', error);
       setModelError(error.message);
@@ -88,8 +100,19 @@ export const OpenAIProvider = ({ children }) => {
     checkFirstTimeUser();
   }, []);
 
+  // Initialize model and set up storage event listener
   useEffect(() => {
     validateStoredModel();
+    
+    // Handle model changes from other tabs/windows
+    const handleStorageChange = (e) => {
+      if (e.key === LOCAL_STORAGE_KEYS.MODEL) {
+        validateStoredModel();
+      }
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
   const value = {
     client: openAI.client,
@@ -107,19 +130,33 @@ export const OpenAIProvider = ({ children }) => {
     validateStoredKey,
     selectedModel,
     modelError,
+    /**
+     * Updates the selected model with validation and storage synchronization
+     * Maintains consistency between localStorage and context state
+     */
     setSelectedModel: async (model) => {
       try {
+        if (!model) {
+          throw new Error('Model selection is required');
+        }
+        
+        if (!OPENAI_MODELS[model]) {
+          throw new Error('Selected model is not available');
+        }
+        
         if (validateModel(model)) {
           await storeModel(model);
           setSelectedModel(model);
           setModelError(null);
           await openAI.reinitializeClient();
+          return true;
         }
       } catch (error) {
         console.error('Error setting model:', error);
         setModelError(error.message);
-        throw error;
+        throw new Error(`Failed to set model: ${error.message}`);
       }
+      return false;
     },
     addApiKey: async (key) => {
       try {

@@ -59,10 +59,40 @@ export const storeModel = (model) => {
   });
 };
 
+/**
+ * Retrieves the currently selected OpenAI model from localStorage
+ * If no model is stored or the stored model is invalid, returns the default model
+ * 
+ * @returns {string} The current OpenAI model identifier
+ * @throws {ModelStorageError} If the stored model is invalid or not available
+ * @throws {ModelValidationError} If the default model is not available
+ */
 export const getModel = () => {
   return handleModelOperation(() => {
     const storedModel = localStorage.getItem(LOCAL_STORAGE_KEYS.MODEL);
-    return storedModel || DEFAULT_MODEL;
+    
+    if (storedModel) {
+      try {
+        validateModel(storedModel);
+        return storedModel;
+      } catch (error) {
+        throw new ModelStorageError(
+          'The previously selected model is no longer available. Reverting to default model.',
+          'INVALID_STORED_MODEL'
+        );
+      }
+    }
+    
+    // Validate default model
+    try {
+      validateModel(DEFAULT_MODEL);
+      return DEFAULT_MODEL;
+    } catch (error) {
+      throw new ModelValidationError(
+        'The default model is not available. Please check your configuration.',
+        'INVALID_DEFAULT_MODEL'
+      );
+    }
   });
 };
 
@@ -91,6 +121,38 @@ export const initializeWithStoredModel = () => {
   });
 };
 
+/**
+ * Sorts the available models to display the selected model first
+ * @param {string} selectedModel - The currently selected model
+ * @returns {Array<{id: string, name: string}>} Sorted array of model objects
+ * @throws {ModelValidationError} If no models are available or if selected model is invalid
+ */
+export const getModelDisplayOrder = () => {
+  return handleModelOperation(() => {
+    const selectedModel = getModel();
+    validateModel(selectedModel);
+
+    const modelEntries = Object.entries(OPENAI_MODELS);
+    if (modelEntries.length === 0) {
+      throw new ModelValidationError('No models available', 'EMPTY_MODELS');
+    }
+
+    // Find selected model entry
+    const selectedEntry = modelEntries.find(([key]) => key === selectedModel);
+    if (!selectedEntry) {
+      throw new ModelValidationError('Selected model not found', 'INVALID_MODEL');
+    }
+
+    // Get remaining entries
+    const remainingEntries = modelEntries.filter(([key]) => key !== selectedModel);
+
+    // Combine and transform to required format
+    return [...[selectedEntry], ...remainingEntries].map(([id, name]) => ({
+      id,
+      name
+    }));
+  });
+};
 export const getAvailableModels = () => {
   return handleModelOperation(() => {
     return Object.entries(OPENAI_MODELS).map(([id, name]) => ({
